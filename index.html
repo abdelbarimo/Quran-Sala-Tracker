@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prayer & Khatma Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- iOS app-like behavior -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Tracker">
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 1rem;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-button {
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: none;
+      background: #e0e0e0;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .tab-button.active {
+      background: #007aff;
+      color: #fff;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .date-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .date-header button {
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+      border: none;
+      background: #e0e0e0;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .date-header button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .date-text {
+      font-weight: 600;
+    }
+
+    .month-picker {
+      font-size: 0.8rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .prayer-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.4rem;
+    }
+
+    .prayer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.4rem 0.6rem;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      background: #fafafa;
+    }
+
+    .prayer-label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.95rem;
+    }
+
+    .prayer-status {
+      font-size: 0.8rem;
+      color: #555;
+    }
+
+    input[type="checkbox"] {
+      width: 1.1rem;
+      height: 1.1rem;
+    }
+
+    .stats {
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .highlight {
+      font-weight: 600;
+    }
+
+    .progress-bar-container {
+      background: #eee;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+      height: 12px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #007aff;
+      transition: width 0.2s ease-out;
+    }
+
+    .small {
+      font-size: 0.8rem;
+      color: #555;
+    }
+
+    #missedDaysList {
+      margin-top: 0.7rem;
+      font-size: 0.85rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    #missedDaysList ul {
+      padding-left: 1.1rem;
+      margin: 0.3rem 0 0;
+    }
+
+    /* Khatma styles */
+    .khatma-input-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .khatma-input-row label {
+      font-size: 0.85rem;
+    }
+
+    .khatma-input-row input {
+      padding: 0.3rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+    }
+
+    .khatma-summary {
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    /* Backup styles */
+    .backup-textarea {
+      width: 100%;
+      min-height: 160px;
+      resize: vertical;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 0.8rem;
+      font-family: monospace;
+      box-sizing: border-box;
+    }
+
+    .backup-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .backup-buttons button {
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .btn-primary {
+      background: #007aff;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e0e0e0;
+      color: #222;
+    }
+
+    .backup-status {
+      margin-top: 0.4rem;
+      font-size: 0.8rem;
+      color: #555;
+    }
+
+    @media (min-width: 768px) {
+      body {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Tracker</h1>
+
+  <div class="tabs">
+    <button class="tab-button active" data-tab="prayer">Prayer</button>
+    <button class="tab-button" data-tab="khatma">Khatma</button>
+    <button class="tab-button" data-tab="backup">Backup</button>
+  </div>
+
+  <!-- PRAYER TAB -->
+  <div id="tab-prayer" class="tab-content active">
+    <div class="card">
+      <div class="date-header">
+        <button id="prevDayBtn">&lt;</button>
+        <span class="date-text" id="currentDateText"></span>
+        <button id="nextDayBtn">&gt;</button>
+        <button id="todayBtn">Today</button>
+        <input type="month" id="monthPicker" class="month-picker">
+      </div>
+      <p class="small" style="text-align:center;margin-top:0;">
+        Tick each prayer when you pray it. Use arrows or month picker to move between days/months.
+      </p>
+
+      <div class="prayer-list" id="prayerList"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1.1rem;margin-top:0;">Monthly Stats</h2>
+      <div class="stats" id="statsSummary"></div>
+
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="overallProgressBar"></div>
+      </div>
+      <p class="small" id="streakText" style="margin-top:0.5rem;"></p>
+
+      <div id="missedDaysList"></div>
+    </div>
+  </div>
+
+  <!-- KHATMA TAB -->
+  <div id="tab-khatma" class="tab-content">
+    <div class="card">
+      <h2 style="font-size:1.1rem;margin-top:0;">Khatma Tracker</h2>
+      <p class="small" style="margin-top:0;">
+        Set your plan once, pick the real start date, then just update the current page.
+      </p>
+
+      <div class="khatma-input-row">
+        <label for="k_totalPages">Total pages in the mushaf</label>
+        <input type="number" id="k_totalPages" min="1" value="602">
+      </div>
+
+      <div class="khatma-input-row">
+        <label for="k_days">Planned days to finish</label>
+        <input type="number" id="k_days" min="1" value="30">
+      </div>
+
+      <div class="khatma-input-row">
+        <label for="k_startDate">Start date</label>
+        <input type="date" id="k_startDate">
+      </div>
+
+      <div class="khatma-input-row">
+        <label for="k_currentPage">Current page you reached</label>
+        <input type="number" id="k_currentPage" min="0" value="0">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1.1rem;margin-top:0;">Khatma Stats</h2>
+      <div class="khatma-summary" id="k_summary"></div>
+    </div>
+  </div>
+
+  <!-- BACKUP TAB -->
+  <div id="tab-backup" class="tab-content">
+    <div class="card">
+      <h2 style="font-size:1.1rem;margin-top:0;">Backup / Restore</h2>
+      <p class="small" style="margin-top:0;">
+        Export your data from one device and import it on another. This includes both Prayer and Khatma trackers.
+      </p>
+
+      <textarea id="backupText" class="backup-textarea" placeholder="Backup data will appear here when you export. Paste data here to restore on another device."></textarea>
+
+      <div class="backup-buttons">
+        <button id="btnExport" class="btn-primary">Export</button>
+        <button id="btnImport" class="btn-secondary">Import</button>
+        <button id="btnCopy" class="btn-secondary">Copy</button>
+        <button id="btnPaste" class="btn-secondary">Paste</button>
+        <button id="btnClearBackupBox" class="btn-secondary">Clear box</button>
+      </div>
+
+      <div id="backupStatus" class="backup-status"></div>
+    </div>
+  </div>
+
+  <script>
+    // ---------------- COMMON DATE HELPERS ----------------
+    function toYMD(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function todayDateStr() {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return toYMD(d);
+    }
+
+    function strToDate(str) {
+      const [y, m, d] = str.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      dt.setHours(0, 0, 0, 0);
+      return dt;
+    }
+
+    function dateToStr(d) {
+      d.setHours(0, 0, 0, 0);
+      return toYMD(d);
+    }
+
+    // ---------------- STORAGE KEYS ----------------
+    const STORAGE_KEY = "salahTrackerData_v1";
+    const KHATMA_KEY = "khatmaTrackerData_v1";
+
+    // ---------------- PRAYER TRACKER ----------------
+    const PRAYERS = [
+      { key: "fajr", label: "Fajr" },
+      { key: "dhuhr", label: "Dhuhr" },
+      { key: "asr", label: "Asr" },
+      { key: "maghrib", label: "Maghrib" },
+      { key: "isha", label: "Isha" }
+    ];
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { days: {} };
+        const parsed = JSON.parse(raw);
+        if (!parsed.days) parsed.days = {};
+        return parsed;
+      } catch {
+        return { days: {} };
+      }
+    }
+
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function formatDateHuman(str) {
+      const d = strToDate(str);
+      if (isNaN(d.getTime())) return str;
+      return d.toLocaleDateString(undefined, {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    }
+
+    let appData = loadData();
+    let currentDateStr = todayDateStr();
+
+    let currentDateTextEl,
+        prayerListEl,
+        statsSummaryEl,
+        overallProgressBarEl,
+        streakTextEl,
+        missedDaysListEl,
+        prevDayBtn,
+        nextDayBtn,
+        todayBtn,
+        monthPickerEl;
+
+    function getDayRecord(dateStr) {
+      if (!appData.days[dateStr]) {
+        appData.days[dateStr] = {};
+      }
+      return appData.days[dateStr];
+    }
+
+    function updateDayButtons() {
+      const todayStr = todayDateStr();
+      nextDayBtn.disabled = (currentDateStr >= todayStr);
+    }
+
+    function syncMonthPickerWithCurrentDate() {
+      if (!monthPickerEl) return;
+      const ym = currentDateStr.slice(0, 7); // yyyy-mm
+      if (monthPickerEl.value !== ym) {
+        monthPickerEl.value = ym;
+      }
+    }
+
+    function renderDay() {
+      currentDateTextEl.textContent = formatDateHuman(currentDateStr);
+      const record = getDayRecord(currentDateStr);
+
+      prayerListEl.innerHTML = "";
+      PRAYERS.forEach(p => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "prayer-item";
+
+        const labelDiv = document.createElement("div");
+        labelDiv.className = "prayer-label";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = !!record[p.key];
+
+        const span = document.createElement("span");
+        span.textContent = p.label;
+
+        labelDiv.appendChild(checkbox);
+        labelDiv.appendChild(span);
+
+        const statusSpan = document.createElement("span");
+        statusSpan.className = "prayer-status";
+        statusSpan.textContent = checkbox.checked ? "Done" : "";
+
+        checkbox.addEventListener("change", () => {
+          record[p.key] = checkbox.checked;
+          if (!checkbox.checked) {
+            delete record[p.key];
+          }
+          statusSpan.textContent = checkbox.checked ? "Done" : "";
+          saveData(appData);
+          updateStats();
+        });
+
+        wrapper.appendChild(labelDiv);
+        wrapper.appendChild(statusSpan);
+        prayerListEl.appendChild(wrapper);
+      });
+
+      saveData(appData);
+      updateDayButtons();
+      syncMonthPickerWithCurrentDate();
+    }
+
+    // MONTH STATS BASED ON SELECTED DAY'S MONTH
+    function computeMonthlyStatsForDate(selectedDateStr) {
+      const selectedDate = strToDate(selectedDateStr);
+      const today = strToDate(todayDateStr());
+
+      const selYear = selectedDate.getFullYear();
+      const selMonthIndex = selectedDate.getMonth();
+
+      const firstDay = new Date(selYear, selMonthIndex, 1);
+      firstDay.setHours(0, 0, 0, 0);
+
+      const lastDayOfMonth = new Date(selYear, selMonthIndex + 1, 0);
+      lastDayOfMonth.setHours(0, 0, 0, 0);
+      const daysInMonth = lastDayOfMonth.getDate();
+
+      const todayYear = today.getFullYear();
+      const todayMonthIndex = today.getMonth();
+
+      let endDate;
+      let isCurrentMonth = false;
+
+      if (selYear === todayYear && selMonthIndex === todayMonthIndex) {
+        endDate = today;      // 1st -> today
+        isCurrentMonth = true;
+      } else if (lastDayOfMonth < today) {
+        endDate = lastDayOfMonth;  // full past month
+      } else {
+        endDate = today;      // safety
+      }
+
+      const prayersPerDay = PRAYERS.length;
+
+      let totalDone = 0;
+      let totalPossible = 0;
+      let loggedDays = 0;
+      let daysCovered = 0;
+      const missedDays = [];
+
+      for (let d = new Date(firstDay.getTime()); d <= endDate; d.setDate(d.getDate() + 1)) {
+        daysCovered++;
+        const ds = dateToStr(d);
+        const rec = appData.days[ds] || {};
+
+        const doneCount = PRAYERS.reduce(
+          (acc, p) => acc + (rec[p.key] ? 1 : 0),
+          0
+        );
+
+        totalPossible += prayersPerDay;
+        totalDone += doneCount;
+
+        if (doneCount > 0) {
+          loggedDays++;
+        }
+
+        if (doneCount < prayersPerDay) {
+          const missedPrayers = PRAYERS
+            .filter(p => !rec[p.key])
+            .map(p => p.label);
+          missedDays.push({ dateStr: ds, missedPrayers });
+        }
+      }
+
+      let streakDays = 0;
+      for (let d = new Date(endDate.getTime()); d >= firstDay; d.setDate(d.getDate() - 1)) {
+        const ds = dateToStr(d);
+        const rec = appData.days[ds] || {};
+        const doneCount = PRAYERS.reduce(
+          (acc, p) => acc + (rec[p.key] ? 1 : 0),
+          0
+        );
+
+        if (streakDays === 0) {
+          if (doneCount === prayersPerDay) {
+            streakDays = 1;
+          } else {
+            break;
+          }
+        } else {
+          if (doneCount === prayersPerDay) {
+            streakDays++;
+          } else {
+            break;
+          }
+        }
+      }
+
+      const overallPercent =
+        totalPossible > 0 ? (totalDone / totalPossible) * 100 : 0;
+
+      const monthName = selectedDate.toLocaleString(undefined, { month: "long" });
+
+      return {
+        monthName,
+        year: selYear,
+        totalDone,
+        totalPossible,
+        overallPercent,
+        loggedDays,
+        daysCovered,
+        daysInMonth,
+        streakDays,
+        missedDays,
+        isCurrentMonth
+      };
+    }
+
+    function updateStats() {
+      const s = computeMonthlyStatsForDate(currentDateStr);
+
+      const rangeLabel = s.isCurrentMonth
+        ? "From 1st to today"
+        : "Full month";
+
+      statsSummaryEl.innerHTML = `
+        <div><span class="highlight">Month:</span> ${s.monthName} ${s.year}</div>
+        <div><span class="highlight">${rangeLabel}:</span> ${s.totalDone} / ${s.totalPossible} prayers (${s.overallPercent.toFixed(1)}%)</div>
+        <div><span class="highlight">Days covered this month:</span> ${s.daysCovered} / ${s.daysInMonth} (logged: ${s.loggedDays})</div>
+      `;
+
+      overallProgressBarEl.style.width = s.overallPercent.toFixed(1) + "%";
+
+      if (s.streakDays <= 0) {
+        streakTextEl.textContent = "Current full-day streak (in this month): 0 days.";
+      } else if (s.streakDays === 1) {
+        streakTextEl.textContent = "Current full-day streak (in this month): 1 day.";
+      } else {
+        streakTextEl.textContent = `Current full-day streak (in this month): ${s.streakDays} days.`;
+      }
+
+      if (s.missedDays.length === 0) {
+        missedDaysListEl.innerHTML = `<span class="small">No missed prayers in this month (for the covered days).</span>`;
+      } else {
+        let html = `<div class="small"><span class="highlight">Days with missed prayers (this month):</span></div><ul>`;
+        s.missedDays.forEach(item => {
+          html += `<li>${item.dateStr} – Missed: ${item.missedPrayers.join(", ")}</li>`;
+        });
+        html += `</ul>`;
+        missedDaysListEl.innerHTML = html;
+      }
+    }
+
+    function initPrayerTracker() {
+      currentDateTextEl = document.getElementById("currentDateText");
+      prayerListEl = document.getElementById("prayerList");
+      statsSummaryEl = document.getElementById("statsSummary");
+      overallProgressBarEl = document.getElementById("overallProgressBar");
+      streakTextEl = document.getElementById("streakText");
+      missedDaysListEl = document.getElementById("missedDaysList");
+
+      prevDayBtn = document.getElementById("prevDayBtn");
+      nextDayBtn = document.getElementById("nextDayBtn");
+      todayBtn = document.getElementById("todayBtn");
+      monthPickerEl = document.getElementById("monthPicker");
+
+      const todayStr = todayDateStr();
+      const todayYM = todayStr.slice(0, 7);
+      if (monthPickerEl) {
+        monthPickerEl.value = todayYM;
+        monthPickerEl.max = todayYM; // prevent future months from UI
+        monthPickerEl.addEventListener("change", () => {
+          const val = monthPickerEl.value;
+          if (!val) return;
+          const [y, m] = val.split("-").map(Number);
+          const today = strToDate(todayDateStr());
+          const selectedFirst = new Date(y, m - 1, 1);
+          selectedFirst.setHours(0, 0, 0, 0);
+
+          // If month is in the future, clamp to current month/today
+          if (selectedFirst > today) {
+            monthPickerEl.value = todayYM;
+            currentDateStr = todayDateStr();
+          } else {
+            currentDateStr = dateToStr(selectedFirst);
+          }
+          renderDay();
+          updateStats();
+        });
+      }
+
+      prevDayBtn.addEventListener("click", () => {
+        const d = strToDate(currentDateStr);
+        d.setDate(d.getDate() - 1);
+        currentDateStr = dateToStr(d);
+        renderDay();
+        updateStats();
+      });
+
+      nextDayBtn.addEventListener("click", () => {
+        const todayStrLocal = todayDateStr();
+        const d = strToDate(currentDateStr);
+        d.setDate(d.getDate() + 1);
+        const newStr = dateToStr(d);
+
+        currentDateStr = newStr > todayStrLocal ? todayStrLocal : newStr;
+        renderDay();
+        updateStats();
+      });
+
+      todayBtn.addEventListener("click", () => {
+        currentDateStr = todayDateStr();
+        renderDay();
+        updateStats();
+      });
+
+      currentDateStr = todayDateStr();
+      renderDay();
+      updateStats();
+    }
+
+    // ---------------- KHATMA TRACKER ----------------
+    function loadKhatmaData() {
+      try {
+        const raw = localStorage.getItem(KHATMA_KEY);
+        if (!raw) return {
+          totalPages: 602,
+          days: 30,
+          currentPage: 0,
+          startDate: todayDateStr()
+        };
+        const parsed = JSON.parse(raw);
+        return {
+          totalPages: parsed.totalPages ?? 602,
+          days: parsed.days ?? 30,
+          currentPage: parsed.currentPage ?? 0,
+          startDate: parsed.startDate ?? todayDateStr()
+        };
+      } catch {
+        return {
+          totalPages: 602,
+          days: 30,
+          currentPage: 0,
+          startDate: todayDateStr()
+        };
+      }
+    }
+
+    function saveKhatmaData(data) {
+      localStorage.setItem(KHATMA_KEY, JSON.stringify(data));
+    }
+
+    let khatmaData = loadKhatmaData();
+    let k_totalPagesEl, k_daysEl, k_startDateEl, k_currentPageEl, k_summaryEl;
+
+    function updateKhatmaSummary() {
+      // Basic sanitizing
+      let totalPages = Number(k_totalPagesEl.value) || 0;
+      let days = Number(k_daysEl.value) || 0;
+      let currentPage = Number(k_currentPageEl.value) || 0;
+
+      if (totalPages < 0) totalPages = 0;
+      if (days < 0) days = 0;
+      if (currentPage < 0) currentPage = 0;
+      if (totalPages > 0 && currentPage > totalPages) currentPage = totalPages;
+
+      k_totalPagesEl.value = totalPages;
+      k_daysEl.value = days;
+      k_currentPageEl.value = currentPage;
+
+      let startDateStr = k_startDateEl.value;
+      if (!startDateStr) {
+        startDateStr = todayDateStr();
+        k_startDateEl.value = startDateStr;
+      }
+
+      khatmaData = { totalPages, days, currentPage, startDate: startDateStr };
+      saveKhatmaData(khatmaData);
+
+      const finishedPages = currentPage;
+
+      // Planned pace (can be zero if days=0)
+      const pagesPerDay = days > 0 ? totalPages / days : 0;
+
+      const startDate = strToDate(startDateStr);
+      const todayStr = todayDateStr();
+      const today = strToDate(todayStr);
+
+      const msPerDay = 24 * 60 * 60 * 1000;
+      let daysSinceStart = Math.floor((today - startDate) / msPerDay) + 1;
+      if (daysSinceStart < 0) daysSinceStart = 0;
+
+      // Theoretical progress based on plan
+      const theoreticalPagesDone =
+        daysSinceStart > 0 && pagesPerDay > 0
+          ? Math.min(totalPages, daysSinceStart * pagesPerDay)
+          : 0;
+
+      const theoreticalCurrentPage = theoreticalPagesDone;
+
+      const remainingPages = Math.max(0, totalPages - finishedPages);
+
+      // Actual pace: protect against division by zero
+      let actualPagesPerDay = 0;
+      if (daysSinceStart > 0 && finishedPages > 0) {
+        actualPagesPerDay = finishedPages / daysSinceStart;
+      }
+
+      // Use actual pace if available, otherwise fall back to planned pace
+      let remainingDays = 0;
+      if (remainingPages > 0) {
+        if (actualPagesPerDay > 0) {
+          remainingDays = remainingPages / actualPagesPerDay;
+        } else if (pagesPerDay > 0) {
+          remainingDays = remainingPages / pagesPerDay;
+        } else {
+          remainingDays = 0;
+        }
+      }
+
+      // Planned finish date
+      let plannedFinishStr = "N/A";
+      if (days > 0) {
+        const plannedFinish = new Date(startDate.getTime());
+        plannedFinish.setDate(plannedFinish.getDate() + days - 1);
+        plannedFinishStr = plannedFinish.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        });
+      }
+
+      // ETC based on pace
+      let paceFinishStr = "N/A";
+      if (remainingPages <= 0 && totalPages > 0) {
+        paceFinishStr = today.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        });
+      } else if (remainingDays > 0) {
+        const paceFinish = new Date(today.getTime());
+        paceFinish.setDate(paceFinish.getDate() + Math.ceil(remainingDays));
+        paceFinishStr = paceFinish.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        });
+      }
+
+      const percentDone =
+        totalPages > 0 ? (finishedPages / totalPages) * 100 : 0;
+
+      const diffPages = finishedPages - theoreticalPagesDone;
+      let diffText;
+      if (totalPages === 0 || days === 0) {
+        diffText = "Set total pages and planned days to see on-track status.";
+      } else if (Math.abs(diffPages) < 0.5) {
+        diffText = "You are exactly on track.";
+      } else if (diffPages > 0) {
+        diffText = `You are ahead by about ${diffPages.toFixed(1)} pages.`;
+      } else {
+        diffText = `You are behind by about ${Math.abs(diffPages).toFixed(1)} pages.`;
+      }
+
+      const actualPagesPerDayRounded =
+        actualPagesPerDay > 0 ? Math.round(actualPagesPerDay * 10) / 10 : 0;
+
+      k_summaryEl.innerHTML = `
+        <div><span class="highlight">Pages per day (plan):</span> ${pagesPerDay.toFixed(1)}</div>
+        <div><span class="highlight">Plan duration:</span> ${days} days</div>
+        <div><span class="highlight">Start date:</span> ${startDate.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</div>
+        <div><span class="highlight">Planned finish date:</span> ${plannedFinishStr}</div>
+        <hr>
+        <div><span class="highlight">Progress:</span> ${finishedPages} / ${totalPages} pages (${percentDone.toFixed(1)}%)</div>
+        <div><span class="highlight">Theoretical pages by today (plan):</span> ${theoreticalPagesDone.toFixed(1)} (page ~${Math.floor(theoreticalCurrentPage)})</div>
+        <div><span class="highlight">Your current page:</span> ${currentPage}</div>
+        <div>${diffText}</div>
+        <hr>
+        <div><span class="highlight">Remaining pages:</span> ${remainingPages}</div>
+        <div><span class="highlight">Actual pages/day (so far):</span> ${actualPagesPerDayRounded}</div>
+        <div><span class="highlight">Estimated finish (current pace):</span> ${paceFinishStr}</div>
+      `;
+    }
+
+    function initKhatmaTracker() {
+      k_totalPagesEl = document.getElementById("k_totalPages");
+      k_daysEl = document.getElementById("k_days");
+      k_startDateEl = document.getElementById("k_startDate");
+      k_currentPageEl = document.getElementById("k_currentPage");
+      k_summaryEl = document.getElementById("k_summary");
+
+      k_totalPagesEl.value = khatmaData.totalPages;
+      k_daysEl.value = khatmaData.days;
+      k_currentPageEl.value = khatmaData.currentPage;
+      k_startDateEl.value = khatmaData.startDate;
+
+      k_totalPagesEl.addEventListener("input", updateKhatmaSummary);
+      k_daysEl.addEventListener("input", updateKhatmaSummary);
+      k_startDateEl.addEventListener("change", updateKhatmaSummary);
+      k_currentPageEl.addEventListener("input", updateKhatmaSummary);
+
+      updateKhatmaSummary();
+    }
+
+    // ---------------- BACKUP / RESTORE ----------------
+    function exportAllData() {
+      let prayer = {};
+      let khatma = {};
+
+      try {
+        const pRaw = localStorage.getItem(STORAGE_KEY);
+        if (pRaw) prayer = JSON.parse(pRaw);
+      } catch {}
+
+      try {
+        const kRaw = localStorage.getItem(KHATMA_KEY);
+        if (kRaw) khatma = JSON.parse(kRaw);
+      } catch {}
+
+      const bundle = { prayer, khatma, version: 1 };
+      return JSON.stringify(bundle);
+    }
+
+    function importAllData(json) {
+      const parsed = JSON.parse(json);
+
+      if (parsed.prayer && typeof parsed.prayer === "object") {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed.prayer));
+      }
+
+      if (parsed.khatma && typeof parsed.khatma === "object") {
+        localStorage.setItem(KHATMA_KEY, JSON.stringify(parsed.khatma));
+      }
+
+      appData = loadData();
+      khatmaData = loadKhatmaData();
+
+      currentDateStr = todayDateStr();
+      renderDay();
+      updateStats();
+      initKhatmaTracker();
+    }
+
+    function initBackupTab() {
+      const backupTextEl = document.getElementById("backupText");
+      const backupStatusEl = document.getElementById("backupStatus");
+      const btnExport = document.getElementById("btnExport");
+      const btnImport = document.getElementById("btnImport");
+      const btnCopy = document.getElementById("btnCopy");
+      const btnPaste = document.getElementById("btnPaste");
+      const btnClearBackupBox = document.getElementById("btnClearBackupBox");
+
+      btnExport.addEventListener("click", () => {
+        try {
+          const data = exportAllData();
+          backupTextEl.value = data;
+          backupStatusEl.textContent = "Exported. Copy this text and save it somewhere safe or paste it on another device.";
+        } catch (e) {
+          backupStatusEl.textContent = "Export failed: " + e.message;
+        }
+      });
+
+      btnImport.addEventListener("click", () => {
+        const txt = backupTextEl.value.trim();
+        if (!txt) {
+          backupStatusEl.textContent = "Nothing to import. Paste backup data first.";
+          return;
+        }
+        try {
+          importAllData(txt);
+          backupStatusEl.textContent = "Import successful. Data restored.";
+        } catch (e) {
+          backupStatusEl.textContent = "Import failed: " + e.message;
+        }
+      });
+
+      btnCopy.addEventListener("click", async () => {
+        const text = backupTextEl.value;
+        if (!text) {
+          backupStatusEl.textContent = "Nothing to copy.";
+          return;
+        }
+
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            // Fallback
+            backupTextEl.select();
+            document.execCommand("copy");
+            backupTextEl.setSelectionRange(0, 0); // remove selection
+          }
+          backupStatusEl.textContent = "Backup text copied to clipboard.";
+        } catch (e) {
+          backupStatusEl.textContent = "Copy failed. You may need to copy manually.";
+        }
+      });
+
+      btnPaste.addEventListener("click", async () => {
+        if (!(navigator.clipboard && navigator.clipboard.readText)) {
+          backupStatusEl.textContent = "Paste from clipboard is not supported here. Long-press in the box and paste manually.";
+          return;
+        }
+
+        try {
+          const text = await navigator.clipboard.readText();
+          if (!text) {
+            backupStatusEl.textContent = "Clipboard is empty.";
+            return;
+          }
+          backupTextEl.value = text;
+          backupStatusEl.textContent = "Pasted text from clipboard into the box.";
+        } catch (e) {
+          backupStatusEl.textContent = "Paste failed. Browser might be blocking clipboard access.";
+        }
+      });
+
+      btnClearBackupBox.addEventListener("click", () => {
+        backupTextEl.value = "";
+        backupStatusEl.textContent = "";
+      });
+    }
+
+    // ---------------- TABS ----------------
+    function initTabs() {
+      const buttons = document.querySelectorAll(".tab-button");
+      const contents = {
+        prayer: document.getElementById("tab-prayer"),
+        khatma: document.getElementById("tab-khatma"),
+        backup: document.getElementById("tab-backup")
+      };
+
+      buttons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const tab = btn.getAttribute("data-tab");
+
+          buttons.forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          Object.keys(contents).forEach(key => {
+            contents[key].classList.remove("active");
+          });
+          contents[tab].classList.add("active");
+        });
+      });
+    }
+
+    // ---------------- INIT ALL ----------------
+    document.addEventListener("DOMContentLoaded", () => {
+      initTabs();
+      initPrayerTracker();
+      initKhatmaTracker();
+      initBackupTab();
+    });
+  </script>
+</body>
+</html>
