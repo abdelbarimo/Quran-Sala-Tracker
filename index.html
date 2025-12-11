@@ -312,7 +312,7 @@
 
       <div class="khatma-input-row">
         <label for="k_currentPage">Current page you reached</label>
-        <input type="number" id="k_currentPage" min="1" value="1">
+        <input type="number" id="k_currentPage" min="0" value="0">
       </div>
     </div>
 
@@ -335,6 +335,8 @@
       <div class="backup-buttons">
         <button id="btnExport" class="btn-primary">Export</button>
         <button id="btnImport" class="btn-secondary">Import</button>
+        <button id="btnCopy" class="btn-secondary">Copy</button>
+        <button id="btnPaste" class="btn-secondary">Paste</button>
         <button id="btnClearBackupBox" class="btn-secondary">Clear box</button>
       </div>
 
@@ -706,21 +708,21 @@
         if (!raw) return {
           totalPages: 602,
           days: 30,
-          currentPage: 1,
+          currentPage: 0,
           startDate: todayDateStr()
         };
         const parsed = JSON.parse(raw);
         return {
           totalPages: parsed.totalPages ?? 602,
           days: parsed.days ?? 30,
-          currentPage: parsed.currentPage ?? 1,
+          currentPage: parsed.currentPage ?? 0,
           startDate: parsed.startDate ?? todayDateStr()
         };
       } catch {
         return {
           totalPages: 602,
           days: 30,
-          currentPage: 1,
+          currentPage: 0,
           startDate: todayDateStr()
         };
       }
@@ -734,10 +736,19 @@
     let k_totalPagesEl, k_daysEl, k_startDateEl, k_currentPageEl, k_summaryEl;
 
     function updateKhatmaSummary() {
-      const totalPages = Math.max(1, Number(k_totalPagesEl.value) || 1);
-      const days = Math.max(1, Number(k_daysEl.value) || 1);
-      let currentPage = Math.max(1, Number(k_currentPageEl.value) || 1);
-      if (currentPage > totalPages) currentPage = totalPages;
+      // Basic sanitizing
+      let totalPages = Number(k_totalPagesEl.value) || 0;
+      let days = Number(k_daysEl.value) || 0;
+      let currentPage = Number(k_currentPageEl.value) || 0;
+
+      if (totalPages < 0) totalPages = 0;
+      if (days < 0) days = 0;
+      if (currentPage < 0) currentPage = 0;
+      if (totalPages > 0 && currentPage > totalPages) currentPage = totalPages;
+
+      k_totalPagesEl.value = totalPages;
+      k_daysEl.value = days;
+      k_currentPageEl.value = currentPage;
 
       let startDateStr = k_startDateEl.value;
       if (!startDateStr) {
@@ -748,8 +759,10 @@
       khatmaData = { totalPages, days, currentPage, startDate: startDateStr };
       saveKhatmaData(khatmaData);
 
-      const pagesPerDay = totalPages / days;
-      const finishedPages = currentPage - 1;
+      const finishedPages = currentPage;
+
+      // Planned pace (can be zero if days=0)
+      const pagesPerDay = days > 0 ? totalPages / days : 0;
 
       const startDate = strToDate(startDateStr);
       const todayStr = todayDateStr();
@@ -759,39 +772,81 @@
       let daysSinceStart = Math.floor((today - startDate) / msPerDay) + 1;
       if (daysSinceStart < 0) daysSinceStart = 0;
 
-      const theoreticalPagesDone = Math.min(totalPages, daysSinceStart * pagesPerDay);
-      const theoreticalCurrentPage = Math.floor(theoreticalPagesDone) + 1;
+      // Theoretical progress based on plan
+      const theoreticalPagesDone =
+        daysSinceStart > 0 && pagesPerDay > 0
+          ? Math.min(totalPages, daysSinceStart * pagesPerDay)
+          : 0;
 
-      const remainingPages = totalPages - finishedPages;
-      const remainingDays = remainingPages > 0 ? remainingPages / pagesPerDay : 0;
+      const theoreticalCurrentPage = theoreticalPagesDone;
 
-      const plannedFinish = new Date(startDate.getTime());
-      plannedFinish.setDate(plannedFinish.getDate() + days - 1);
-      const plannedFinishStr = plannedFinish.toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric"
-      });
+      const remainingPages = Math.max(0, totalPages - finishedPages);
 
-      const paceFinish = new Date(today.getTime());
-      paceFinish.setDate(paceFinish.getDate() + Math.ceil(remainingDays));
-      const paceFinishStr = paceFinish.toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric"
-      });
+      // Actual pace: protect against division by zero
+      let actualPagesPerDay = 0;
+      if (daysSinceStart > 0 && finishedPages > 0) {
+        actualPagesPerDay = finishedPages / daysSinceStart;
+      }
 
-      const percentDone = (finishedPages / totalPages) * 100;
+      // Use actual pace if available, otherwise fall back to planned pace
+      let remainingDays = 0;
+      if (remainingPages > 0) {
+        if (actualPagesPerDay > 0) {
+          remainingDays = remainingPages / actualPagesPerDay;
+        } else if (pagesPerDay > 0) {
+          remainingDays = remainingPages / pagesPerDay;
+        } else {
+          remainingDays = 0;
+        }
+      }
+
+      // Planned finish date
+      let plannedFinishStr = "N/A";
+      if (days > 0) {
+        const plannedFinish = new Date(startDate.getTime());
+        plannedFinish.setDate(plannedFinish.getDate() + days - 1);
+        plannedFinishStr = plannedFinish.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        });
+      }
+
+      // ETC based on pace
+      let paceFinishStr = "N/A";
+      if (remainingPages <= 0 && totalPages > 0) {
+        paceFinishStr = today.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        });
+      } else if (remainingDays > 0) {
+        const paceFinish = new Date(today.getTime());
+        paceFinish.setDate(paceFinish.getDate() + Math.ceil(remainingDays));
+        paceFinishStr = paceFinish.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        });
+      }
+
+      const percentDone =
+        totalPages > 0 ? (finishedPages / totalPages) * 100 : 0;
 
       const diffPages = finishedPages - theoreticalPagesDone;
       let diffText;
-      if (Math.abs(diffPages) < 0.5) {
+      if (totalPages === 0 || days === 0) {
+        diffText = "Set total pages and planned days to see on-track status.";
+      } else if (Math.abs(diffPages) < 0.5) {
         diffText = "You are exactly on track.";
       } else if (diffPages > 0) {
         diffText = `You are ahead by about ${diffPages.toFixed(1)} pages.`;
       } else {
         diffText = `You are behind by about ${Math.abs(diffPages).toFixed(1)} pages.`;
       }
+
+      const actualPagesPerDayRounded =
+        actualPagesPerDay > 0 ? Math.round(actualPagesPerDay * 10) / 10 : 0;
 
       k_summaryEl.innerHTML = `
         <div><span class="highlight">Pages per day (plan):</span> ${pagesPerDay.toFixed(1)}</div>
@@ -800,12 +855,13 @@
         <div><span class="highlight">Planned finish date:</span> ${plannedFinishStr}</div>
         <hr>
         <div><span class="highlight">Progress:</span> ${finishedPages} / ${totalPages} pages (${percentDone.toFixed(1)}%)</div>
-        <div><span class="highlight">Theoretical page today:</span> ${theoreticalCurrentPage} (≈${theoreticalPagesDone.toFixed(1)} pages read)</div>
+        <div><span class="highlight">Theoretical pages by today (plan):</span> ${theoreticalPagesDone.toFixed(1)} (page ~${Math.floor(theoreticalCurrentPage)})</div>
         <div><span class="highlight">Your current page:</span> ${currentPage}</div>
         <div>${diffText}</div>
         <hr>
         <div><span class="highlight">Remaining pages:</span> ${remainingPages}</div>
-        <div><span class="highlight">Estimated finish if you keep current pace:</span> ${paceFinishStr}</div>
+        <div><span class="highlight">Actual pages/day (so far):</span> ${actualPagesPerDayRounded}</div>
+        <div><span class="highlight">Estimated finish (current pace):</span> ${paceFinishStr}</div>
       `;
     }
 
@@ -873,6 +929,8 @@
       const backupStatusEl = document.getElementById("backupStatus");
       const btnExport = document.getElementById("btnExport");
       const btnImport = document.getElementById("btnImport");
+      const btnCopy = document.getElementById("btnCopy");
+      const btnPaste = document.getElementById("btnPaste");
       const btnClearBackupBox = document.getElementById("btnClearBackupBox");
 
       btnExport.addEventListener("click", () => {
@@ -896,6 +954,47 @@
           backupStatusEl.textContent = "Import successful. Data restored.";
         } catch (e) {
           backupStatusEl.textContent = "Import failed: " + e.message;
+        }
+      });
+
+      btnCopy.addEventListener("click", async () => {
+        const text = backupTextEl.value;
+        if (!text) {
+          backupStatusEl.textContent = "Nothing to copy.";
+          return;
+        }
+
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            // Fallback
+            backupTextEl.select();
+            document.execCommand("copy");
+            backupTextEl.setSelectionRange(0, 0); // remove selection
+          }
+          backupStatusEl.textContent = "Backup text copied to clipboard.";
+        } catch (e) {
+          backupStatusEl.textContent = "Copy failed. You may need to copy manually.";
+        }
+      });
+
+      btnPaste.addEventListener("click", async () => {
+        if (!(navigator.clipboard && navigator.clipboard.readText)) {
+          backupStatusEl.textContent = "Paste from clipboard is not supported here. Long-press in the box and paste manually.";
+          return;
+        }
+
+        try {
+          const text = await navigator.clipboard.readText();
+          if (!text) {
+            backupStatusEl.textContent = "Clipboard is empty.";
+            return;
+          }
+          backupTextEl.value = text;
+          backupStatusEl.textContent = "Pasted text from clipboard into the box.";
+        } catch (e) {
+          backupStatusEl.textContent = "Paste failed. Browser might be blocking clipboard access.";
         }
       });
 
